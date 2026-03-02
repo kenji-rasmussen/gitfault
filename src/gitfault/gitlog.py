@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 
 REC = "\x1e"  # record separator, unlikely to appear in commit metadata
 FIELD = "\x1f"  # unit separator
@@ -27,6 +28,14 @@ class Commit:
     files: list[FileChange] = field(default_factory=list)
 
 
+_ISO_RE = re.compile(
+    r"(?P<y>\d{4})-(?P<mo>\d{2})-(?P<d>\d{2})"
+    r"[T ](?P<hh>\d{2}):(?P<mm>\d{2}):(?P<ss>\d{2})"
+    r"(?:\.\d+)?"
+    r"(?:Z|(?P<sign>[+-])(?P<oh>\d{2}):?(?P<om>\d{2})?)?$"
+)
+
+
 def _parse_when(ts: str):
     """Parse a git ``%aI`` author date, preserving the commit's own timezone.
 
@@ -38,17 +47,29 @@ def _parse_when(ts: str):
     ts = ts.strip()
     if not ts:
         return None
-    try:
-        dt = datetime.fromisoformat(ts)
-    except ValueError:
-        # Fallback: maybe an epoch integer (legacy) — treat as UTC.
+    # Strict ISO-8601 as produced by git's %aI, e.g. 2026-09-07T21:34:12-07:00
+    # (or ...Z, or a bare timezone-less form). Parse explicitly rather than via
+    # datetime.fromisoformat, whose accepted grammar varies across Python
+    # versions (< 3.11 is notably restrictive).
+    m = _ISO_RE.match(ts)
+    if m:
+        y, mo, d, hh, mm, ss = (int(m.group(k)) for k in
+                                ("y", "mo", "d", "hh", "mm", "ss"))
+        sign, oh, om = m.group("sign"), m.group("oh"), m.group("om")
+        if sign is None:            # no offset / trailing 'Z' -> treat as UTC
+            tz = timezone.utc
+        else:
+            delta = timedelta(hours=int(oh), minutes=int(om or 0))
+            tz = timezone(delta if sign == "+" else -delta)
         try:
-            return datetime.fromtimestamp(int(ts), tz=timezone.utc)
-        except (ValueError, OverflowError):
+            return datetime(y, mo, d, hh, mm, ss, tzinfo=tz)
+        except ValueError:
             return None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt
+    # Fallback: a bare epoch integer (legacy) — treat as UTC.
+    try:
+        return datetime.fromtimestamp(int(ts), tz=timezone.utc)
+    except (ValueError, OverflowError):
+        return None
 
 
 class NotAGitRepo(RuntimeError):
