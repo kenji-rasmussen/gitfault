@@ -27,6 +27,30 @@ class Commit:
     files: list[FileChange] = field(default_factory=list)
 
 
+def _parse_when(ts: str):
+    """Parse a git ``%aI`` author date, preserving the commit's own timezone.
+
+    Returns a timezone-aware ``datetime`` whose wall-clock fields (``.hour``,
+    ``.date()``, ``.month`` ...) reflect the author's *local* time when the
+    commit was made — not UTC. Falls back to treating a bare integer as an
+    epoch (older callers) and to UTC if the offset is somehow absent.
+    """
+    ts = ts.strip()
+    if not ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(ts)
+    except ValueError:
+        # Fallback: maybe an epoch integer (legacy) — treat as UTC.
+        try:
+            return datetime.fromtimestamp(int(ts), tz=timezone.utc)
+        except (ValueError, OverflowError):
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 class NotAGitRepo(RuntimeError):
     pass
 
@@ -79,7 +103,12 @@ def collect_commits(cwd: str, since: str | None = None,
     # `rev-list --all -n1` exits 0 with empty output on such repos.
     if not _run(["git", "rev-list", "--all", "-n", "1"], root).strip():
         return root, []
-    fmt = f"{REC}%H{FIELD}%an{FIELD}%ae{FIELD}%at{FIELD}%s"
+    # %aI = author date, strict ISO-8601 *with the commit's own timezone
+    # offset* (e.g. 2026-09-07T21:34:12-07:00). We keep that offset so that
+    # wall-clock stats (hour-of-day / "night owl", per-day streaks, busiest
+    # month) reflect the time the author actually saw on their clock, rather
+    # than everything collapsed to UTC. See gitlog._parse_when.
+    fmt = f"{REC}%H{FIELD}%an{FIELD}%ae{FIELD}%aI{FIELD}%s"
     args = ["git", "log", "--no-merges", "--numstat", "-M",
             f"--pretty=format:{fmt}"]
     if since:
@@ -98,9 +127,8 @@ def collect_commits(cwd: str, since: str | None = None,
         if len(parts) < 5:
             continue
         sha, author, email, ts, subject = parts[:5]
-        try:
-            when = datetime.fromtimestamp(int(ts), tz=timezone.utc)
-        except ValueError:
+        when = _parse_when(ts)
+        if when is None:
             continue
         c = Commit(sha=sha, author=author, email=email.lower(),
                    when=when, subject=subject)

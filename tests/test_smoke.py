@@ -291,3 +291,32 @@ def test_wrapped_year_filter(sample_repo):
     st = wrapped.compute(commits, year=1990)
     assert st.commits == 0
     assert st.contributors == []
+
+
+def test_commit_timezone_is_preserved(tmp_path):
+    """A commit's own tz offset must be honored so wall-clock stats
+    (night-owl %, per-day streaks, busiest month) reflect the author's
+    local time, not UTC. Regression for the %at(UTC)->%aI(local) fix."""
+    import os
+    from gitfault import wrapped
+
+    repo = tmp_path / "tz"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "a@x.io")
+    _git(repo, "config", "user.name", "Alice")
+    (repo / "f.txt").write_text("hi\n")
+    _git(repo, "add", "-A")
+    # 01:00 in UTC-08:00 == 09:00 UTC. Locally it's a 1am "night owl" commit;
+    # under the old UTC logic it would have been hour 9 and NOT a night owl.
+    env = dict(os.environ)
+    env["GIT_AUTHOR_DATE"] = "2026-03-02T01:00:00-08:00"
+    env["GIT_COMMITTER_DATE"] = "2026-03-02T01:00:00-08:00"
+    _git(repo, "commit", "-qm", "one am pacific", env=env)
+
+    root, commits = collect_commits(str(repo))
+    assert commits[0].when.hour == 1          # local wall clock, not 9 (UTC)
+    assert commits[0].when.date().isoformat() == "2026-03-02"
+    st = wrapped.compute(commits)
+    assert st.night_owl_pct == 1.0            # counted before 5am locally
+    assert st.peak_hour[0] == 1
