@@ -101,6 +101,11 @@ hotspot / coupling / knowledge tables — with **no CDN, no tracking, and no
 network access**. Open it locally, drop it in a CI artifact, or publish it to
 GitHub Pages.
 
+![gitfault HTML report — hotspot treemap for pallets/flask](docs/report.png)
+
+*(above: `gitfault report` run on [`pallets/flask`](https://github.com/pallets/flask) —
+each tile is a file, sized by lines and coloured by how often it changes.)*
+
 ```bash
 gitfault report                       # -> gitfault-report.html
 gitfault report -o docs/health.html   # choose the path
