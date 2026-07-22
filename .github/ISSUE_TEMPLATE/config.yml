@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "I ran gitfault on my repo — here's what I saw"
+    url: https://github.com/PLACEHOLDER/gitfault/discussions
+    about: Share surprising hotspots, coupling, or knowledge-risk findings. This feedback directly shapes the roadmap.

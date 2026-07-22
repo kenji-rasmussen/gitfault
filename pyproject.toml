@@ -23,6 +23,9 @@ classifiers = [
 ]
 dependencies = ["rich>=13.0"]
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
 [project.urls]
 Homepage = "https://github.com/PLACEHOLDER/gitfault"
 Issues = "https://github.com/PLACEHOLDER/gitfault/issues"
