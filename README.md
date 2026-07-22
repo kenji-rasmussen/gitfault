@@ -22,6 +22,53 @@ no configuration, and runs on any repository in seconds.
 
 ---
 
+## Example
+
+Point it at any repo — here's [`pallets/click`](https://github.com/pallets/click):
+
+```text
+$ gitfault overview
+
+                repository
+  commits         775
+  authors         163
+  tracked files   158
+  history         2021-04-11 → 2026-07-17
+  busiest month   2026-05 (76 commits)
+
+              🔥 hotspots — high change × high complexity
+  risk         file                   revs   lines    churn   devs      last
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ██████████   src/click/core.py       149   3,792   19,873     50    5d ago
+  ████░░░░░░   tests/test_options.py    58   3,551    7,906     22   14d ago
+  █░░░░░░░░░   src/click/types.py       45   1,375    6,666     23    5d ago
+  █░░░░░░░░░   src/click/termui.py      42     960    4,552     21    5d ago
+```
+
+```text
+$ gitfault coupling
+
+  🔗 change coupling — files that change together
+  coupling           file A               file B                shared
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ███████░░░   70%   src/click/core.py    src/click/parser.py    14/20
+  ███████░░░   66%   src/click/core.py    tests/test_options.py  38/58
+```
+
+```text
+$ gitfault knowledge
+
+  🧠 knowledge risk
+  bus factor           1 (devs holding 50% of the code)
+  contributors         13
+  single-author code   6% of lines owned by one dev
+```
+
+(Colours and bars render in your terminal.) Add `--json` to any command for
+machine-readable output.
+
+---
+
 ## Install
 
 ```bash
