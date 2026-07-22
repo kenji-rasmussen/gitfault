@@ -26,45 +26,53 @@ no configuration, and runs on any repository in seconds.
 
 Point it at any repo — here's [`pallets/click`](https://github.com/pallets/click):
 
+![gitfault CLI output — overview and hotspots for pallets/click](docs/cli.svg)
+
+<details>
+<summary>Same output as plain text (for copy/paste)</summary>
+
 ```text
 $ gitfault overview
 
                 repository
-  commits         775
-  authors         163
+  commits         2,126
+  authors         466
   tracked files   158
-  history         2021-04-11 → 2026-07-17
-  busiest month   2026-05 (76 commits)
+  history         2014-04-24 → 2026-07-17
+  busiest month   2014-05 (245 commits)
 
               🔥 hotspots — high change × high complexity
-  risk         file                   revs   lines    churn   devs      last
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ██████████   src/click/core.py       149   3,792   19,873     50    5d ago
-  ████░░░░░░   tests/test_options.py    58   3,551    7,906     22   14d ago
-  █░░░░░░░░░   src/click/types.py       45   1,375    6,666     23    5d ago
-  █░░░░░░░░░   src/click/termui.py      42     960    4,552     21    5d ago
+  risk         file                   revs   lines   churn   devs      last
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ██████████   src/click/core.py       226   3,792   8,648     76    5d ago
+  █████░░░░░   tests/test_options.py   128   3,551   5,480     55   15d ago
+  █░░░░░░░░░   src/click/types.py       81   1,375   2,913     33    5d ago
+  █░░░░░░░░░   tests/test_termui.py     64   1,612   2,545     32   22d ago
 ```
 
 ```text
 $ gitfault coupling
 
   🔗 change coupling — files that change together
-  coupling           file A               file B                shared
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ███████░░░   70%   src/click/core.py    src/click/parser.py    14/20
-  ███████░░░   66%   src/click/core.py    tests/test_options.py  38/58
+  coupling           file A                  file B                   shared
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  █████████░   86%   src/click/core.py       tests/test_info_dict.py     6/7
+  █████████░   86%   src/click/_textwrap.py  src/click/formatting.py     6/7
 ```
 
 ```text
 $ gitfault knowledge
 
   🧠 knowledge risk
-  bus factor           1 (devs holding 50% of the code)
-  contributors         13
-  single-author code   6% of lines owned by one dev
+  bus factor           2 (devs holding 50% of the code)
+  contributors         18
+  single-author code   7% of lines owned by one dev
 ```
 
-(Colours and bars render in your terminal.) Add `--json` to any command for
+</details>
+
+Running plain `gitfault` shows overview + hotspots (above); the `coupling` and
+`knowledge` views are their own subcommands. Add `--json` to any command for
 machine-readable output.
 
 ---
