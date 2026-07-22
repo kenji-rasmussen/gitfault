@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gitfault"
-version = "0.1.0"
+version = "0.2.0"
 description = "Find the fault lines in any codebase — hotspots, change-coupling and knowledge risk, straight from your git history."
 readme = "README.md"
 requires-python = ">=3.9"

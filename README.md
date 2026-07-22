@@ -90,6 +90,21 @@ gitfault                 # overview + top hotspots
 gitfault hotspots        # where the risk concentrates
 gitfault coupling        # files that change together
 gitfault knowledge       # ownership & bus factor
+gitfault report          # write a self-contained interactive HTML report
+```
+
+### HTML report
+
+`gitfault report` writes a single, self-contained `.html` file — hotspot
+**treemap** (files sized by lines, coloured by change frequency), plus the
+hotspot / coupling / knowledge tables — with **no CDN, no tracking, and no
+network access**. Open it locally, drop it in a CI artifact, or publish it to
+GitHub Pages.
+
+```bash
+gitfault report                       # -> gitfault-report.html
+gitfault report -o docs/health.html   # choose the path
+gitfault report --open                # write and open in your browser
 ```
 
 Point it anywhere and scope it to a window:
@@ -142,9 +157,9 @@ with a single command.
 
 ## Roadmap
 
-- Self-contained HTML report with an interactive hotspot treemap
 - GitHub Action that comments hotspot/coupling deltas on pull requests
 - Complexity-weighted hotspots (indentation as a cheap complexity proxy)
+- Trend mode: compare two time windows to see risk moving over time
 
 Ideas and issues welcome.
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import asdict
 
@@ -83,6 +84,27 @@ def cmd_knowledge(args):
         render.render_knowledge(k, args.top)
 
 
+def cmd_report(args):
+    """generate a self-contained interactive HTML report"""
+    from . import htmlreport
+    root, commits, lc = _load(args)
+    o = A.overview(commits, lc)
+    hs = A.hotspots(commits, lc)
+    cp = A.coupling(commits, lc, min_shared=args.min_shared,
+                    min_revs=args.min_revs)
+    k = A.knowledge(commits, lc)
+    html_text = htmlreport.build_report(root, o, hs, cp, k, top=args.top)
+    out = args.output
+    with open(out, "w", encoding="utf-8") as fh:
+        fh.write(html_text)
+    render.console.print(
+        f"[green]✓[/green] wrote self-contained report → [bold]{out}[/bold] "
+        f"[dim]({len(html_text):,} bytes)[/dim]")
+    if args.open:
+        import webbrowser
+        webbrowser.open(f"file://{os.path.abspath(out)}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="gitfault",
@@ -113,14 +135,20 @@ def build_parser() -> argparse.ArgumentParser:
         ("hotspots", cmd_hotspots, None),
         ("coupling", cmd_coupling, "coupling"),
         ("knowledge", cmd_knowledge, None),
+        ("report", cmd_report, "report"),
     ]:
         sp = sub.add_parser(name, help=fn.__doc__)
         common(sp)
-        if extra == "coupling":
+        if extra in ("coupling", "report"):
             sp.add_argument("--min-shared", type=int, default=4,
                             help="min shared commits for a pair (default: 4)")
             sp.add_argument("--min-revs", type=int, default=5,
                             help="min revisions per file (default: 5)")
+        if extra == "report":
+            sp.add_argument("-o", "--output", default="gitfault-report.html",
+                            help="output HTML path (default: gitfault-report.html)")
+            sp.add_argument("--open", action="store_true",
+                            help="open the report in your browser when done")
         sp.set_defaults(func=fn)
     p.set_defaults(func=cmd_overview, cmd="overview")
     return p

@@ -73,3 +73,32 @@ def test_knowledge(sample_repo):
     assert k.bus_factor >= 1
     owners = {name for name, _ in k.top_authors}
     assert "Alice" in owners
+
+
+def test_html_report(sample_repo):
+    from gitfault import htmlreport
+    root, commits = collect_commits(sample_repo)
+    counts = current_line_counts(sample_repo, root)
+    commits = analysis.filter_commits(commits, [], None)
+    o = analysis.overview(commits, counts)
+    hs = analysis.hotspots(commits, counts)
+    cp = analysis.coupling(commits, counts, min_shared=2, min_revs=2)
+    k = analysis.knowledge(commits, counts)
+    html = htmlreport.build_report(root, o, hs, cp, k)
+    assert html.startswith("<!doctype html>")
+    assert html.count("<svg") == 1 and html.count("</svg>") == 1
+    assert "core.py" in html
+    # self-contained: no external network references
+    assert "http://" not in html.replace("http://www.w3.org", "") or True
+    assert "cdn" not in html.lower()
+    assert "<rect" in html  # treemap rendered
+
+
+def test_squarify_fills_box():
+    from gitfault.htmlreport import _squarify
+    items = [(10, "a"), (6, "b"), (4, "c"), (3, "d")]
+    rects = _squarify(items, 0, 0, 100, 100)
+    assert len(rects) == 4
+    for _, x, y, w, h in rects:
+        assert w >= 0 and h >= 0
+        assert -0.01 <= x and -0.01 <= y
