@@ -102,3 +102,29 @@ def test_squarify_fills_box():
     for _, x, y, w, h in rects:
         assert w >= 0 and h >= 0
         assert -0.01 <= x and -0.01 <= y
+
+
+def test_markdown_report(sample_repo):
+    from gitfault import mdreport
+    root, commits = collect_commits(sample_repo)
+    counts = current_line_counts(sample_repo, root)
+    commits = analysis.filter_commits(commits, [], None)
+    o = analysis.overview(commits, counts)
+    hs = analysis.hotspots(commits, counts)
+    cp = analysis.coupling(commits, counts, min_shared=2, min_revs=2)
+    k = analysis.knowledge(commits, counts)
+    md = mdreport.build_markdown(root, o, hs, cp, k)
+    assert md.startswith("# gitfault report")
+    # GitHub-flavoured tables present for each section
+    assert "## 🔥 Hotspots" in md
+    assert "## 🔗 Change coupling" in md
+    assert "## 🧠 Knowledge & bus factor" in md
+    assert "core.py" in md and "util.py" in md
+    # coupling table rendered (not the empty-state)
+    assert "shared commits" in md
+    # every table row is well-formed: same pipe count as its header
+    for block in md.split("\n\n"):
+        rows = [r for r in block.splitlines() if r.startswith("|")]
+        if len(rows) >= 2:
+            ncol = rows[0].count("|")
+            assert all(r.count("|") == ncol for r in rows), block

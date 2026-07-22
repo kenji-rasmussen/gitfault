@@ -90,7 +90,21 @@ gitfault                 # overview + top hotspots
 gitfault hotspots        # where the risk concentrates
 gitfault coupling        # files that change together
 gitfault knowledge       # ownership & bus factor
+gitfault markdown        # the whole analysis as GitHub-flavoured Markdown
 gitfault report          # write a self-contained interactive HTML report
+```
+
+### Markdown report
+
+`gitfault markdown` prints the full analysis as GitHub-flavoured Markdown —
+tables render **inline** in issues, PRs and READMEs, so it's the most
+shareable output. Pipe it into a file, paste it into an issue, or commit it as
+a living `HEALTH.md`:
+
+```bash
+gitfault markdown                 # -> stdout (pipe or paste anywhere)
+gitfault markdown -o HEALTH.md    # write to a file
+gitfault markdown | pbcopy        # straight to the clipboard (macOS)
 ```
 
 ### HTML report
