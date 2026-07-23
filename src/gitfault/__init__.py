@@ -1,2 +1,2 @@
 """gitfault — find the fault lines in any codebase from its git history."""
-__version__ = "0.2.0"
+__version__ = "0.3.0"
