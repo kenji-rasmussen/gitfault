@@ -26,6 +26,11 @@ no configuration, and runs on any repository in seconds.
 
 Point it at any repo — here's [`pallets/click`](https://github.com/pallets/click):
 
+![gitfault hotspots running on pallets/click](docs/demo.gif)
+
+Every number is computed straight from `git log` — no config, no plugins, no
+network. Here's the fuller static output (overview + hotspots + coupling):
+
 ![gitfault CLI output — overview and hotspots for pallets/click](docs/cli.svg)
 
 <details>
