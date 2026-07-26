@@ -32,6 +32,10 @@ class NotAGitRepo(RuntimeError):
 
 
 def _run(args: list[str], cwd: str) -> str:
+    # Force literal UTF-8 paths (disable octal-escaping/quoting of non-ASCII
+    # filenames) so numstat + ls-files agree and on-disk lookups succeed.
+    if args and args[0] == "git":
+        args = [args[0], "-c", "core.quotepath=false", *args[1:]]
     try:
         out = subprocess.run(
             args, cwd=cwd, capture_output=True, text=True, check=True,
@@ -71,6 +75,10 @@ def collect_commits(cwd: str, since: str | None = None,
                     until: str | None = None) -> tuple[str, list[Commit]]:
     """Return (repo_root, commits newest-first)."""
     root = repo_root(cwd)
+    # A freshly-initialised repo has no commits yet; `git log` would error.
+    # `rev-list --all -n1` exits 0 with empty output on such repos.
+    if not _run(["git", "rev-list", "--all", "-n", "1"], root).strip():
+        return root, []
     fmt = f"{REC}%H{FIELD}%an{FIELD}%ae{FIELD}%at{FIELD}%s"
     args = ["git", "log", "--no-merges", "--numstat", "-M",
             f"--pretty=format:{fmt}"]

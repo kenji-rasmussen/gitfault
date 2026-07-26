@@ -128,3 +128,36 @@ def test_markdown_report(sample_repo):
         if len(rows) >= 2:
             ncol = rows[0].count("|")
             assert all(r.count("|") == ncol for r in rows), block
+
+
+def test_unicode_paths_and_authors(tmp_path):
+    """Non-ASCII filenames/authors must not be octal-escaped or lost.
+
+    Regression: without `core.quotepath=false`, git quotes non-ASCII paths so
+    on-disk line counts fail (loc=0) and hotspots vanish.
+    """
+    repo = tmp_path / "u"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "u@x.io")
+    _git(repo, "config", "user.name", "\u00dcn\u00efc\u00f6d\u00e9 \u65e5\u672c")
+    fname = "caf\u00e9_\u65e5\u672c.txt"
+    (repo / fname).write_text("a\nb\nc\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "init")
+
+    root, commits = collect_commits(str(repo))
+    counts = current_line_counts(str(repo), root)
+    assert fname in counts and counts[fname] == 3
+    hs = analysis.hotspots(analysis.filter_commits(commits, [], None), counts)
+    assert [h.path for h in hs] == [fname]
+    assert hs[0].lines == 3
+
+
+def test_repo_without_commits(tmp_path):
+    """A freshly-initialised repo (no commits) yields empty results, not a crash."""
+    repo = tmp_path / "empty"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    root, commits = collect_commits(str(repo))
+    assert commits == []
