@@ -90,6 +90,8 @@ pipx install gitfault      # recommended
 uv tool install gitfault
 # or
 pip install gitfault
+# or, from source
+pipx install git+https://github.com/PLACEHOLDER/gitfault.git
 ```
 
 Requires Python 3.9+ and `git` on your PATH.
