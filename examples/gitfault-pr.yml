@@ -1,0 +1,24 @@
+# Drop this in .github/workflows/gitfault.yml in your own repo.
+# On every pull request it posts a sticky comment with your repo's
+# current hotspots, change-coupling and bus-factor risk.
+name: gitfault
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write   # needed to post the comment
+
+jobs:
+  gitfault:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitfault needs full history, not a shallow clone
+
+      - uses: kenji-rasmussen/gitfault@v1
+        with:
+          since: "12 months ago"
+          top: "10"

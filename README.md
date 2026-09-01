@@ -185,6 +185,45 @@ operational risk.
 By default gitfault ignores lockfiles, `vendor/`, `node_modules/`, `dist/`,
 minified assets, and common generated files so they don't drown the signal.
 
+## GitHub Action — hotspots on every PR
+
+gitfault ships a composite Action that posts a **sticky comment** on your pull
+requests with the current hotspots, change-coupling and bus-factor risk (and
+writes the same report to the job summary). Drop this in
+`.github/workflows/gitfault.yml`:
+
+```yaml
+name: gitfault
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write   # needed to post the comment
+jobs:
+  gitfault:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitfault needs full history, not a shallow clone
+      - uses: kenji-rasmussen/gitfault@v1
+        with:
+          since: "12 months ago"
+          top: "10"
+```
+
+The comment is updated in place on each new push, so a PR never accumulates a
+pile of stale reports.
+
+| input | default | meaning |
+|-------|---------|---------|
+| `path` | `.` | repository path to analyze |
+| `since` | *(full history)* | only commits after this date (git date syntax) |
+| `top` | `10` | rows per section |
+| `version` | *(latest)* | pin a specific gitfault release from PyPI |
+| `comment` | `true` | post/update the sticky PR comment |
+| `job-summary` | `true` | write the report to the Actions job summary |
+| `github-token` | `${{ github.token }}` | token used to post the comment |
+
 ## Why this exists
 
 The idea — treating version-control history as behavioural data about a
@@ -197,7 +236,7 @@ with a single command.
 
 ## Roadmap
 
-- GitHub Action that comments hotspot/coupling deltas on pull requests
+- ✅ GitHub Action that comments hotspots/coupling on pull requests *(shipped — see above)*
 - Complexity-weighted hotspots (indentation as a cheap complexity proxy)
 - Trend mode: compare two time windows to see risk moving over time
 

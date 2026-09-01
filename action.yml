@@ -1,0 +1,98 @@
+name: "gitfault"
+description: "Comment git-history code analysis (hotspots, change-coupling, bus-factor) on your pull requests."
+author: "Kenji Rasmussen"
+branding:
+  icon: "git-branch"
+  color: "red"
+
+inputs:
+  path:
+    description: "Path to the repository to analyze."
+    required: false
+    default: "."
+  since:
+    description: 'Only analyze commits after this date, e.g. "12 months ago" or "2024-01-01". Empty = full history.'
+    required: false
+    default: ""
+  top:
+    description: "Number of rows to show per section."
+    required: false
+    default: "10"
+  version:
+    description: "gitfault version to install from PyPI (e.g. 0.3.1). Empty = latest."
+    required: false
+    default: ""
+  comment:
+    description: 'Post/update a sticky comment on the pull request ("true"/"false").'
+    required: false
+    default: "true"
+  job-summary:
+    description: 'Write the report to the GitHub Actions job summary ("true"/"false").'
+    required: false
+    default: "true"
+  github-token:
+    description: "Token used to post the PR comment. Needs pull-requests: write."
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  markdown-file:
+    description: "Path to the generated Markdown report."
+    value: ${{ steps.run.outputs.markdown-file }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - name: Install gitfault
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -n "${{ inputs.version }}" ]; then
+          python -m pip install --quiet "gitfault==${{ inputs.version }}"
+        else
+          python -m pip install --quiet gitfault
+        fi
+
+    - name: Run gitfault
+      id: run
+      shell: bash
+      run: |
+        set -euo pipefail
+        MARKER="<!-- gitfault-action -->"
+        OUT=/tmp/gitfault-report.md
+        args=(markdown --top "${{ inputs.top }}" -C "${{ inputs.path }}")
+        if [ -n "${{ inputs.since }}" ]; then args+=(--since "${{ inputs.since }}"); fi
+        gitfault "${args[@]}" -o "$OUT"
+        # Prepend the sticky-comment marker
+        { printf '%s\n\n' "$MARKER"; cat "$OUT"; } > "${OUT}.stamped"
+        mv "${OUT}.stamped" "$OUT"
+        echo "markdown-file=$OUT" >> "$GITHUB_OUTPUT"
+        if [ "${{ inputs.job-summary }}" = "true" ]; then
+          cat "$OUT" >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+    - name: Comment on pull request
+      if: ${{ inputs.comment == 'true' && github.event.pull_request.number != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.pull_request.number }}
+        MARKER: "<!-- gitfault-action -->"
+      run: |
+        set -euo pipefail
+        OUT=/tmp/gitfault-report.md
+        cid=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+                --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n1 || true)
+        if [ -n "$cid" ]; then
+          gh api -X PATCH "repos/$REPO/issues/comments/$cid" -F body=@"$OUT" >/dev/null
+          echo "Updated existing gitfault comment ($cid)."
+        else
+          gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@"$OUT" >/dev/null
+          echo "Posted new gitfault comment."
+        fi
