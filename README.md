@@ -85,13 +85,15 @@ machine-readable output.
 ## Install
 
 ```bash
+# Works today (PyPI release coming shortly):
+pipx install git+https://github.com/kenji-rasmussen/gitfault.git
+
+# Once published to PyPI:
 pipx install gitfault      # recommended
 # or
 uv tool install gitfault
 # or
 pip install gitfault
-# or, from source
-pipx install git+https://github.com/kenji-rasmussen/gitfault.git
 ```
 
 Requires Python 3.9+ and `git` on your PATH.
