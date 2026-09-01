@@ -77,7 +77,7 @@ runs:
         fi
 
     - name: Comment on pull request
-      if: ${{ inputs.comment == 'true' && github.event.pull_request.number != '' }}
+      if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
