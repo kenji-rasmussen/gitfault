@@ -1,5 +1,10 @@
 # gitfault
 
+[![PyPI](https://img.shields.io/pypi/v/gitfault.svg)](https://pypi.org/project/gitfault/)
+[![Python](https://img.shields.io/pypi/pyversions/gitfault.svg)](https://pypi.org/project/gitfault/)
+[![CI](https://github.com/kenji-rasmussen/gitfault/actions/workflows/ci.yml/badge.svg)](https://github.com/kenji-rasmussen/gitfault/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **Find the fault lines in any codebase — straight from its git history.**
 
 `gitfault` reads your `git log` and surfaces the three things that actually
@@ -85,15 +90,14 @@ machine-readable output.
 ## Install
 
 ```bash
-# Works today (PyPI release coming shortly):
-pipx install git+https://github.com/kenji-rasmussen/gitfault.git
-
-# Once published to PyPI:
 pipx install gitfault      # recommended
 # or
 uv tool install gitfault
 # or
 pip install gitfault
+
+# bleeding edge, straight from main:
+pipx install git+https://github.com/kenji-rasmussen/gitfault.git
 ```
 
 Requires Python 3.9+ and `git` on your PATH.
