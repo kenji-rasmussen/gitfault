@@ -248,6 +248,20 @@ original open tool (`code-maat`) is awkward to run. `gitfault` is a fast,
 zero-config, nicely-rendered CLI that gives you the core insights on any repo
 with a single command.
 
+|                         | gitfault | code-maat | CodeScene |
+| ----------------------- | :------: | :-------: | :-------: |
+| Free & open-source      |    ✅    |    ✅     |    ❌     |
+| One command, no config  |    ✅    |    ❌ (git log → CSV → JVM) |  ✅ (hosted)  |
+| Install                 | `pipx install gitfault` | clone + JVM + build | SaaS / self-host |
+| Hotspots (churn × size) |    ✅    |    ✅     |    ✅     |
+| Temporal coupling       |    ✅    |    ✅     |    ✅     |
+| Knowledge / bus-factor  |    ✅    |    ✅     |    ✅     |
+| Rendered tables + JSON  |    ✅    |  CSV only |    ✅     |
+| Interactive HTML report |    ✅    |    ❌     |    ✅     |
+| Markdown / PR-comment   |    ✅    |    ❌     |    ✅     |
+| Analyse any repo by URL |    ✅    |    ❌     |    —      |
+| Language-agnostic       |    ✅    |    ✅     |    ✅     |
+
 ## Roadmap
 
 - ✅ GitHub Action that comments hotspots/coupling on pull requests *(shipped — see above)*
