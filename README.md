@@ -115,6 +115,20 @@ gitfault markdown        # the whole analysis as GitHub-flavoured Markdown
 gitfault report          # write a self-contained interactive HTML report
 ```
 
+### Point it at any repo — no checkout needed
+
+Pass a URL or a `owner/repo` GitHub shorthand and gitfault clones it into a
+temp dir, analyses it, and cleans up after itself:
+
+```bash
+gitfault -C pallets/flask              # owner/repo shorthand
+gitfault hotspots -C facebook/react    # any subcommand works
+gitfault -C https://github.com/django/django
+```
+
+Great for a 10-second "let's see the fault lines in *that* project" without
+leaving your terminal.
+
 ### Markdown report
 
 `gitfault markdown` prints the full analysis as GitHub-flavoured Markdown —
@@ -174,7 +188,7 @@ operational risk.
 
 | flag | meaning |
 |------|---------|
-| `-C, --path` | run against a repo elsewhere |
+| `-C, --path` | run against a repo elsewhere — a local path, a clone URL, or `owner/repo` shorthand (auto-cloned) |
 | `--since` / `--until` | restrict the commit window (git date syntax) |
 | `--top N` | number of rows to show |
 | `--exclude GLOB` | ignore extra paths (repeatable) |

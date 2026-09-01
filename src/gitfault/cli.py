@@ -2,9 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from dataclasses import asdict
 
 from . import __version__
@@ -13,7 +18,56 @@ from . import gitlog
 from . import render
 
 
+_REMOTE_SCHEMES = ("http://", "https://", "git://", "ssh://", "git@", "file://")
+_SHORTHAND = re.compile(r"^[A-Za-z0-9][\w.-]*/[A-Za-z0-9][\w.-]*$")
+
+
+def _is_remote(spec: str) -> bool:
+    """True if `spec` should be cloned rather than read as a local path."""
+    if spec.startswith(_REMOTE_SCHEMES):
+        return True
+    if spec.startswith("github.com/") or spec.startswith("gitlab.com/"):
+        return True
+    # `owner/repo` shorthand — only when it isn't an existing local path
+    if _SHORTHAND.match(spec) and not os.path.exists(spec):
+        return True
+    return False
+
+
+def _clone_url(spec: str) -> str:
+    if spec.startswith(_REMOTE_SCHEMES):
+        return spec
+    if spec.startswith(("github.com/", "gitlab.com/")):
+        return "https://" + spec
+    return "https://github.com/" + spec  # owner/repo shorthand
+
+
+def _resolve_path(spec: str) -> str:
+    """Return a local path for `spec`, cloning it first if it's remote."""
+    if not _is_remote(spec):
+        return spec
+    url = _clone_url(spec)
+    if shutil.which("git") is None:
+        raise gitlog.NotAGitRepo("git is required to clone a remote repository")
+    tmp = tempfile.mkdtemp(prefix="gitfault-clone-")
+    atexit.register(lambda: shutil.rmtree(tmp, ignore_errors=True))
+    render.err_console.print(f"[dim]cloning {url} …[/dim]")
+    try:
+        subprocess.run(
+            ["git", "clone", "--quiet", url, tmp],
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        msg = (e.stderr or b"").decode("utf-8", "replace").strip()
+        raise gitlog.NotAGitRepo(
+            f"could not clone {url}" + (f": {msg}" if msg else "")) from None
+    return tmp
+
+
 def _load(args):
+    spec = args.path
+    args.path = _resolve_path(spec)
+    # for cloned remotes, show the friendly spec instead of the temp dir
+    args.display = spec if args.path != spec else None
     root, commits = gitlog.collect_commits(args.path, since=args.since,
                                            until=args.until)
     excludes = list(A.DEFAULT_EXCLUDES)
@@ -48,7 +102,8 @@ def cmd_overview(args):
         _emit_json({"overview": asdict(o),
                     "hotspots": [asdict(h) for h in hs[:args.top]]})
         return
-    render.console.print(f"[bold]gitfault[/bold] [dim]{root}[/dim]\n")
+    render.console.print(
+        f"[bold]gitfault[/bold] [dim]{args.display or root}[/dim]\n")
     render.render_overview(o)
     render.console.print()
     render.render_hotspots(hs, args.top)
@@ -93,7 +148,7 @@ def cmd_markdown(args):
     cp = A.coupling(commits, lc, min_shared=args.min_shared,
                     min_revs=args.min_revs)
     k = A.knowledge(commits, lc)
-    md = mdreport.build_markdown(root, o, hs, cp, k, top=args.top)
+    md = mdreport.build_markdown(args.display or root, o, hs, cp, k, top=args.top)
     if getattr(args, "output", None):
         with open(args.output, "w", encoding="utf-8") as fh:
             fh.write(md)
@@ -113,7 +168,7 @@ def cmd_report(args):
     cp = A.coupling(commits, lc, min_shared=args.min_shared,
                     min_revs=args.min_revs)
     k = A.knowledge(commits, lc)
-    html_text = htmlreport.build_report(root, o, hs, cp, k, top=args.top)
+    html_text = htmlreport.build_report(args.display or root, o, hs, cp, k, top=args.top)
     out = args.output
     with open(out, "w", encoding="utf-8") as fh:
         fh.write(html_text)
@@ -135,7 +190,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     def common(sp):
         sp.add_argument("-C", "--path", default=".",
-                        help="path inside the git repo (default: .)")
+                        help="local path, or a remote to clone: a URL or "
+                             "'owner/repo' GitHub shorthand (default: .)")
         sp.add_argument("--since", help="only commits after this date "
                         "(e.g. '2023-01-01' or '18 months ago')")
         sp.add_argument("--until", help="only commits before this date")
@@ -178,8 +234,18 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+_SUBCOMMANDS = {"overview", "hotspots", "coupling", "knowledge",
+                "markdown", "report"}
+
+
 def main(argv=None) -> int:
     p = build_parser()
+    argv = list(sys.argv[1:] if argv is None else argv)
+    # Default to `overview` so bare invocations like `gitfault -C owner/repo`
+    # work without naming a subcommand.
+    if not any(a in _SUBCOMMANDS for a in argv) and \
+            not any(a in ("-h", "--help", "--version") for a in argv):
+        argv = ["overview"] + argv
     args = p.parse_args(argv)
     # defaults for overview when invoked bare
     for attr, val in [("min_shared", 4), ("min_revs", 5)]:

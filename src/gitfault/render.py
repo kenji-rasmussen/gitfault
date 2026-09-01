@@ -10,6 +10,7 @@ from rich import box
 from . import analysis as A
 
 console = Console()
+err_console = Console(stderr=True)
 
 
 def _ago(dt: datetime) -> str:

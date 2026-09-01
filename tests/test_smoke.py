@@ -161,3 +161,37 @@ def test_repo_without_commits(tmp_path):
     _git(repo, "init", "-q")
     root, commits = collect_commits(str(repo))
     assert commits == []
+
+
+def test_is_remote_detection():
+    from gitfault import cli
+    assert cli._is_remote("https://github.com/pallets/click")
+    assert cli._is_remote("git@github.com:pallets/click.git")
+    assert cli._is_remote("github.com/pallets/click")
+    assert cli._is_remote("pallets/click")          # owner/repo shorthand
+    assert not cli._is_remote(".")
+    assert not cli._is_remote("/tmp/some/local/path")
+    assert not cli._is_remote("src/gitfault")       # looks like shorthand but exists? no
+    assert cli._clone_url("pallets/click") == "https://github.com/pallets/click"
+    assert cli._clone_url("github.com/a/b") == "https://github.com/a/b"
+    assert cli._clone_url("https://x/y") == "https://x/y"
+
+
+def test_resolve_and_analyse_remote(sample_repo, tmp_path):
+    """A file:// URL is cloned and analysed end-to-end via the CLI resolver."""
+    from gitfault import cli
+    url = "file://" + str(sample_repo)
+    assert cli._is_remote(url)
+    local = cli._resolve_path(url)
+    assert local != url
+    root, commits = collect_commits(local)
+    assert len(commits) >= 5
+
+
+def test_main_bare_defaults_to_overview(sample_repo, capsys):
+    """`gitfault -C <path>` with no subcommand runs overview and exits 0."""
+    from gitfault import cli
+    rc = cli.main(["-C", str(sample_repo)])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "gitfault" in out
