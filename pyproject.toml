@@ -27,8 +27,8 @@ dependencies = ["rich>=13.0"]
 dev = ["pytest>=7.0"]
 
 [project.urls]
-Homepage = "https://github.com/PLACEHOLDER/gitfault"
-Issues = "https://github.com/PLACEHOLDER/gitfault/issues"
+Homepage = "https://github.com/kenji-rasmussen/gitfault"
+Issues = "https://github.com/kenji-rasmussen/gitfault/issues"
 
 [project.scripts]
 gitfault = "gitfault.cli:main"
