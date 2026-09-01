@@ -4,6 +4,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/gitfault.svg)](https://pypi.org/project/gitfault/)
 [![CI](https://github.com/kenji-rasmussen/gitfault/actions/workflows/ci.yml/badge.svg)](https://github.com/kenji-rasmussen/gitfault/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-gitfault-2ea44f?logo=github)](https://github.com/marketplace/actions/gitfault)
 
 **Find the fault lines in any codebase — straight from its git history.**
 
@@ -201,10 +202,11 @@ minified assets, and common generated files so they don't drown the signal.
 
 ## GitHub Action — hotspots on every PR
 
-gitfault ships a composite Action that posts a **sticky comment** on your pull
-requests with the current hotspots, change-coupling and bus-factor risk (and
-writes the same report to the job summary). Drop this in
-`.github/workflows/gitfault.yml`:
+gitfault ships a composite Action ([on the GitHub
+Marketplace](https://github.com/marketplace/actions/gitfault)) that posts a
+**sticky comment** on your pull requests with the current hotspots,
+change-coupling and bus-factor risk (and writes the same report to the job
+summary). Drop this in `.github/workflows/gitfault.yml`:
 
 ```yaml
 name: gitfault
