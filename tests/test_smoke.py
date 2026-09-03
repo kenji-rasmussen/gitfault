@@ -195,3 +195,33 @@ def test_main_bare_defaults_to_overview(sample_repo, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "gitfault" in out
+
+
+def test_health_score(sample_repo):
+    root, commits = collect_commits(sample_repo)
+    counts = current_line_counts(sample_repo, root)
+    commits = analysis.filter_commits(commits, [], None)
+    hs = analysis.hotspots(commits, counts)
+    k = analysis.knowledge(commits, counts)
+    h = analysis.health(hs, k)
+    assert 0 <= h.score <= 100
+    assert h.grade in {"A", "B", "C", "D", "E", "F"}
+    assert h.color in {"brightgreen", "green", "yellowgreen",
+                       "yellow", "orange", "red"}
+    assert 0.0 <= h.solo_ratio <= 1.0
+    assert 0.0 <= h.top10_churn_share <= 1.0
+
+
+def test_badge_endpoint_json(sample_repo, capsys):
+    from gitfault.cli import main
+    rc = main(["badge", "-C", sample_repo])
+    assert rc == 0
+    out = capsys.readouterr().out
+    import json as _json
+    badge = _json.loads(out)
+    assert badge["schemaVersion"] == 1
+    assert badge["label"] == "code health"
+    # message looks like "A (87)"
+    assert "(" in badge["message"] and ")" in badge["message"]
+    assert badge["color"] in {"brightgreen", "green", "yellowgreen",
+                              "yellow", "orange", "red"}

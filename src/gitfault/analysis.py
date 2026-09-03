@@ -195,6 +195,63 @@ class Overview:
     busiest_month: tuple[str, int]
 
 
+# ------------------------------------------------------------------ health ---
+@dataclass
+class Health:
+    score: int                 # 0..100, higher = healthier
+    grade: str                 # A..F
+    color: str                 # shields.io colour name
+    solo_ratio: float          # fraction of live lines only one author has touched
+    top10_churn_share: float   # fraction of all churn in the 10 biggest hotspots
+    bus_factor: int
+
+
+def _grade_and_color(score: int) -> tuple[str, str]:
+    for cutoff, grade, color in (
+        (85, "A", "brightgreen"),
+        (70, "B", "green"),
+        (55, "C", "yellowgreen"),
+        (40, "D", "yellow"),
+        (25, "E", "orange"),
+    ):
+        if score >= cutoff:
+            return grade, color
+    return "F", "red"
+
+
+def health(hotspots_: list[Hotspot], knowledge_: KnowledgeReport) -> Health:
+    """A single 0..100 code-health score from behavioural risk signals.
+
+    Lower is riskier. The score starts at 100 and subtracts penalties for
+    three interpretable, git-derived signals:
+
+      * solo_ratio        - share of live lines only ONE author has ever
+                            touched (knowledge / bus-factor risk).   up to -40
+      * top10_churn_share - share of all churn concentrated in the 10
+                            biggest hotspots (change concentration).  up to -25
+      * bus_factor        - people holding 50% of the code.  <=1: -20, ==2: -8
+    """
+    total_lines = knowledge_.total_lines or 1
+    solo_ratio = knowledge_.solo_owned_lines / total_lines
+
+    total_churn = sum(h.churn for h in hotspots_) or 1
+    top10_churn = sum(h.churn for h in hotspots_[:10])
+    top10_churn_share = top10_churn / total_churn
+
+    score = 100.0
+    score -= 40.0 * solo_ratio
+    score -= 25.0 * top10_churn_share
+    if knowledge_.bus_factor <= 1:
+        score -= 20.0
+    elif knowledge_.bus_factor == 2:
+        score -= 8.0
+
+    score_i = max(0, min(100, round(score)))
+    grade, color = _grade_and_color(score_i)
+    return Health(score_i, grade, color, solo_ratio, top10_churn_share,
+                  knowledge_.bus_factor)
+
+
 def overview(commits: list[Commit], line_counts: dict[str, int]) -> Overview:
     authors = {c.email for c in commits}
     months: Counter[str] = Counter()

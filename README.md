@@ -172,6 +172,31 @@ gitfault coupling --include "src/**" --min-shared 6
 gitfault knowledge --json | jq .bus_factor
 ```
 
+### Code-health badge
+
+`gitfault badge` distils the whole analysis into a single **0–100 health score**
+and prints a [shields.io endpoint](https://shields.io/badges/endpoint-badge)
+JSON. Commit that JSON anywhere it's reachable over HTTPS (a repo file, a gist,
+GitHub Pages) and shields renders a live badge you can drop in your README:
+
+```bash
+gitfault badge                          # -> {"schemaVersion":1,"label":"code health",...}
+gitfault badge -o .github/badge.json    # commit this file
+gitfault badge --label "codebase" -C pallets/click
+```
+
+```markdown
+![code health](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/OWNER/REPO/main/.github/badge.json)
+```
+
+The score starts at 100 and subtracts penalties for three git-derived risk
+signals: the share of lines only **one** author has ever touched (up to −40),
+how much churn is concentrated in the **10 biggest hotspots** (up to −25), and a
+**bus factor** of 1–2 (−20 / −8). Grades: A ≥ 85, B ≥ 70, C ≥ 55, D ≥ 40,
+E ≥ 25, else F. A ready-to-copy workflow
+([`examples/gitfault-badge.yml`](examples/gitfault-badge.yml)) regenerates and
+commits the badge on every push, so it stays current automatically.
+
 ## What the numbers mean
 
 **Hotspot risk** = *change frequency* × *file size*, each normalised. A tiny file
@@ -264,11 +289,13 @@ with a single command.
 | Interactive HTML report |    ✅    |    ❌     |    ✅     |
 | Markdown / PR-comment   |    ✅    |    ❌     |    ✅     |
 | Analyse any repo by URL |    ✅    |    ❌     |    —      |
+| Embeddable health badge |    ✅    |    ❌     |    ❌     |
 | Language-agnostic       |    ✅    |    ✅     |    ✅     |
 
 ## Roadmap
 
 - ✅ GitHub Action that comments hotspots/coupling on pull requests *(shipped — see above)*
+- ✅ Embeddable code-health badge (`gitfault badge`) *(shipped — see above)*
 - Complexity-weighted hotspots (indentation as a cheap complexity proxy)
 - Trend mode: compare two time windows to see risk moving over time
 

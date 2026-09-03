@@ -98,13 +98,17 @@ def cmd_overview(args):
     root, commits, lc = _load(args)
     o = A.overview(commits, lc)
     hs = A.hotspots(commits, lc)
+    k = A.knowledge(commits, lc)
+    hlth = A.health(hs, k)
     if args.json:
         _emit_json({"overview": asdict(o),
+                    "health": asdict(hlth),
                     "hotspots": [asdict(h) for h in hs[:args.top]]})
         return
     render.console.print(
         f"[bold]gitfault[/bold] [dim]{args.display or root}[/dim]\n")
     render.render_overview(o)
+    render.render_health(hlth)
     render.console.print()
     render.render_hotspots(hs, args.top)
     render.console.print("\n[dim]› gitfault coupling · gitfault knowledge · "
@@ -157,6 +161,31 @@ def cmd_markdown(args):
             f"[dim]({len(md):,} bytes)[/dim]")
     else:
         sys.stdout.write(md)
+
+
+def cmd_badge(args):
+    """emit a shields.io endpoint JSON for an embeddable code-health badge"""
+    _, commits, lc = _load(args)
+    hs = A.hotspots(commits, lc)
+    k = A.knowledge(commits, lc)
+    h = A.health(hs, k)
+    label = args.label or "code health"
+    message = args.message or f"{h.grade} ({h.score})"
+    badge = {
+        "schemaVersion": 1,
+        "label": label,
+        "message": message,
+        "color": h.color,
+    }
+    if getattr(args, "output", None):
+        with open(args.output, "w", encoding="utf-8") as fh:
+            json.dump(badge, fh, indent=2)
+            fh.write("\n")
+        render.err_console.print(
+            f"[green]OK[/green] wrote badge endpoint -> [bold]{args.output}[/bold] "
+            f"[dim](grade {h.grade}, score {h.score})[/dim]")
+    else:
+        _emit_json(badge)
 
 
 def cmd_report(args):
@@ -213,9 +242,17 @@ def build_parser() -> argparse.ArgumentParser:
         ("knowledge", cmd_knowledge, None),
         ("markdown", cmd_markdown, "markdown"),
         ("report", cmd_report, "report"),
+        ("badge", cmd_badge, "badge"),
     ]:
         sp = sub.add_parser(name, help=fn.__doc__)
         common(sp)
+        if extra == "badge":
+            sp.add_argument("--label", default=None,
+                            help="badge left-hand label (default: 'code health')")
+            sp.add_argument("--message", default=None,
+                            help="override the right-hand text (default: 'A (87)')")
+            sp.add_argument("-o", "--output", default=None,
+                            help="write endpoint JSON to this file (default: stdout)")
         if extra in ("coupling", "report", "markdown"):
             sp.add_argument("--min-shared", type=int, default=4,
                             help="min shared commits for a pair (default: 4)")
@@ -235,7 +272,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 _SUBCOMMANDS = {"overview", "hotspots", "coupling", "knowledge",
-                "markdown", "report"}
+                "markdown", "report", "badge"}
 
 
 def main(argv=None) -> int:

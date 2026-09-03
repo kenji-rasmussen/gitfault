@@ -44,6 +44,20 @@ def render_overview(o: A.Overview) -> None:
     console.print(t)
 
 
+_HEALTH_STYLE = {
+    "brightgreen": "bold green", "green": "green", "yellowgreen": "yellow",
+    "yellow": "yellow", "orange": "dark_orange", "red": "bold red",
+}
+
+
+def render_health(h: A.Health) -> None:
+    style = _HEALTH_STYLE.get(h.color, "white")
+    console.print(
+        f"health score  [{style}]{h.score}/100  grade {h.grade}[/{style}]"
+        f"   [dim](bus factor {h.bus_factor} · "
+        f"{h.solo_ratio:.0%} solo-owned lines)[/dim]")
+
+
 def render_hotspots(rows: list[A.Hotspot], top: int) -> None:
     t = Table(title=f"🔥 hotspots (top {top}) — high change × high complexity",
               box=box.SIMPLE_HEAVY, header_style="bold")

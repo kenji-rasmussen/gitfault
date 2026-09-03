@@ -1,0 +1,47 @@
+# Drop this in .github/workflows/gitfault-badge.yml in your own repo.
+# On every push to the default branch it recomputes your code-health score
+# and commits an updated shields.io endpoint file to .github/gitfault-badge.json.
+#
+# Then add this to your README (replace OWNER/REPO and the branch if needed):
+#
+#   ![code health](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/OWNER/REPO/main/.github/gitfault-badge.json)
+#
+name: gitfault-badge
+
+on:
+  push:
+    branches: [main]        # or master
+  workflow_dispatch:
+
+permissions:
+  contents: write           # needed to commit the badge file back
+
+jobs:
+  badge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # gitfault needs full history, not a shallow clone
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pipx install gitfault
+
+      - name: Generate health badge
+        run: |
+          mkdir -p .github
+          gitfault badge -o .github/gitfault-badge.json
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- .github/gitfault-badge.json; then
+            echo "badge unchanged"; exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/gitfault-badge.json
+          git commit -m "chore: update gitfault code-health badge"
+          git push
