@@ -96,6 +96,8 @@ pipx install gitfault      # recommended
 uv tool install gitfault
 # or
 pip install gitfault
+# or, on macOS / Linux via Homebrew:
+brew install kenji-rasmussen/tap/gitfault
 
 # bleeding edge, straight from main:
 pipx install git+https://github.com/kenji-rasmussen/gitfault.git
