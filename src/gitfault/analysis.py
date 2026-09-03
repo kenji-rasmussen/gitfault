@@ -223,13 +223,22 @@ def health(hotspots_: list[Hotspot], knowledge_: KnowledgeReport) -> Health:
     """A single 0..100 code-health score from behavioural risk signals.
 
     Lower is riskier. The score starts at 100 and subtracts penalties for
-    three interpretable, git-derived signals:
+    interpretable, git-derived signals.
+
+    Change-concentration is structural and always applies:
+
+      * top10_churn_share - share of all churn concentrated in the 10
+                            biggest hotspots (change concentration).  up to -30
+
+    Knowledge-silo signals are only a *meaningful, actionable* risk once more
+    than one person contributes: a solo project is solo by definition, so
+    penalising it for a bus factor of 1 or 100% single-author ownership tells
+    you nothing you can act on and just brands healthy small codebases with a
+    scary grade.  These therefore apply only when ``total_authors >= 2``:
 
       * solo_ratio        - share of live lines only ONE author has ever
-                            touched (knowledge / bus-factor risk).   up to -40
-      * top10_churn_share - share of all churn concentrated in the 10
-                            biggest hotspots (change concentration).  up to -25
-      * bus_factor        - people holding 50% of the code.  <=1: -20, ==2: -8
+                            touched (knowledge silo).                 up to -45
+      * bus_factor        - people holding 50% of the code.  <=1: -25, ==2: -10
     """
     total_lines = knowledge_.total_lines or 1
     solo_ratio = knowledge_.solo_owned_lines / total_lines
@@ -239,12 +248,16 @@ def health(hotspots_: list[Hotspot], knowledge_: KnowledgeReport) -> Health:
     top10_churn_share = top10_churn / total_churn
 
     score = 100.0
-    score -= 40.0 * solo_ratio
-    score -= 25.0 * top10_churn_share
-    if knowledge_.bus_factor <= 1:
-        score -= 20.0
-    elif knowledge_.bus_factor == 2:
-        score -= 8.0
+    score -= 30.0 * top10_churn_share
+
+    # Knowledge-silo risk is only meaningful with a team to spread knowledge
+    # across; a single-author project can't do anything about "bus factor 1".
+    if knowledge_.total_authors >= 2:
+        score -= 45.0 * solo_ratio
+        if knowledge_.bus_factor <= 1:
+            score -= 25.0
+        elif knowledge_.bus_factor == 2:
+            score -= 10.0
 
     score_i = max(0, min(100, round(score)))
     grade, color = _grade_and_color(score_i)

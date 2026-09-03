@@ -212,6 +212,34 @@ def test_health_score(sample_repo):
     assert 0.0 <= h.top10_churn_share <= 1.0
 
 
+def test_health_solo_repo_not_penalised_for_team_signals():
+    """A single-author project must not be branded with a scary grade for a
+    bus factor of 1 / 100% single-author ownership -- those are inherent to
+    being solo, not actionable code-health defects.  Only change concentration
+    should move a solo score."""
+    # No hotspots -> zero churn concentration; solo project (1 author).
+    k_solo = analysis.KnowledgeReport(
+        files=[], bus_factor=1, total_authors=1,
+        top_authors=[("solo", 1000)], solo_owned_lines=1000, total_lines=1000)
+    h_solo = analysis.health([], k_solo)
+    # Structurally healthy solo repo should land in A/B territory, not E/F.
+    assert h_solo.score >= 70
+    assert h_solo.grade in {"A", "B"}
+
+
+def test_health_team_knowledge_silo_is_penalised():
+    """The same 100%-single-owner / bus-factor-1 shape IS a real risk once a
+    team exists, and must lower the score."""
+    k_team = analysis.KnowledgeReport(
+        files=[], bus_factor=1, total_authors=5,
+        top_authors=[("a", 900), ("b", 100)],
+        solo_owned_lines=1000, total_lines=1000)
+    h_team = analysis.health([], k_team)
+    # solo_ratio 1.0 (-45) + bus_factor 1 (-25) = -70 -> ~30.
+    assert h_team.score < 40
+    assert h_team.grade in {"E", "F"}
+
+
 def test_badge_endpoint_json(sample_repo, capsys):
     from gitfault.cli import main
     rc = main(["badge", "-C", sample_repo])

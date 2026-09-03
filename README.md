@@ -5,6 +5,7 @@
 [![CI](https://github.com/kenji-rasmussen/gitfault/actions/workflows/ci.yml/badge.svg)](https://github.com/kenji-rasmussen/gitfault/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-gitfault-2ea44f?logo=github)](https://github.com/marketplace/actions/gitfault)
+[![code health](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/kenji-rasmussen/gitfault/main/.github/badge.json)](#code-health-badge)
 
 **Find the fault lines in any codebase — straight from its git history.**
 
@@ -189,11 +190,14 @@ gitfault badge --label "codebase" -C pallets/click
 ![code health](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/OWNER/REPO/main/.github/badge.json)
 ```
 
-The score starts at 100 and subtracts penalties for three git-derived risk
-signals: the share of lines only **one** author has ever touched (up to −40),
-how much churn is concentrated in the **10 biggest hotspots** (up to −25), and a
-**bus factor** of 1–2 (−20 / −8). Grades: A ≥ 85, B ≥ 70, C ≥ 55, D ≥ 40,
-E ≥ 25, else F. A ready-to-copy workflow
+The score starts at 100 and subtracts penalties for git-derived risk signals.
+**Change concentration** — how much churn piles into the **10 biggest hotspots**
+(up to −30) — always applies. **Knowledge-silo** penalties — the share of lines
+only **one** author has ever touched (up to −45) and a **bus factor** of 1–2
+(−25 / −10) — apply *only once a project has two or more contributors*. A solo
+project is solo by definition, so "bus factor 1" there is nothing you can act on;
+penalising it would just brand every healthy small codebase with a scary grade.
+Grades: A ≥ 85, B ≥ 70, C ≥ 55, D ≥ 40, E ≥ 25, else F. A ready-to-copy workflow
 ([`examples/gitfault-badge.yml`](examples/gitfault-badge.yml)) regenerates and
 commits the badge on every push, so it stays current automatically.
 
