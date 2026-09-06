@@ -133,6 +133,10 @@ gitfault -C https://github.com/django/django
 Great for a 10-second "let's see the fault lines in *that* project" without
 leaving your terminal.
 
+**Curious what it says about projects you know?** See the
+**[gallery](docs/GALLERY.md)** — real health scores and hotspots for Flask,
+requests, Click, Express, fzf and bat, each reproducible in one command.
+
 ### Markdown report
 
 `gitfault markdown` prints the full analysis as GitHub-flavoured Markdown —
