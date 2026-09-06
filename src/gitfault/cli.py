@@ -209,6 +209,31 @@ def cmd_report(args):
         webbrowser.open(f"file://{os.path.abspath(out)}")
 
 
+def cmd_wrapped(args):
+    """a shareable 'year in review' recap of a repo's git history"""
+    from . import wrapped
+    root, commits, lc = _load(args)
+    repo = args.display or os.path.basename(os.path.abspath(root)) or root
+    year = args.year
+    if year is None and not args.all_time:
+        years = wrapped._years(commits)
+        if years:
+            year = years[-1]  # most recent year with activity
+    st = wrapped.compute(commits, year=year, top=max(5, args.top))
+    if args.json:
+        _emit_json(asdict(st))
+        return
+    if getattr(args, "svg", None):
+        svg = wrapped.build_svg(st, repo)
+        with open(args.svg, "w", encoding="utf-8") as fh:
+            fh.write(svg)
+        render.console.print(
+            f"[green]\u2713[/green] wrote recap card \u2192 [bold]{args.svg}[/bold] "
+            f"[dim]({len(svg):,} bytes)[/dim]")
+        return
+    wrapped.render_terminal(render.console, st, repo)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="gitfault",
@@ -243,6 +268,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("markdown", cmd_markdown, "markdown"),
         ("report", cmd_report, "report"),
         ("badge", cmd_badge, "badge"),
+        ("wrapped", cmd_wrapped, "wrapped"),
     ]:
         sp = sub.add_parser(name, help=fn.__doc__)
         common(sp)
@@ -266,13 +292,21 @@ def build_parser() -> argparse.ArgumentParser:
                             help="output HTML path (default: gitfault-report.html)")
             sp.add_argument("--open", action="store_true",
                             help="open the report in your browser when done")
+        if extra == "wrapped":
+            sp.add_argument("--year", type=int, default=None,
+                            help="calendar year to recap (default: latest "
+                                 "year with commits)")
+            sp.add_argument("--all-time", action="store_true",
+                            help="recap the entire history instead of one year")
+            sp.add_argument("--svg", metavar="FILE", default=None,
+                            help="write a shareable SVG recap card to FILE")
         sp.set_defaults(func=fn)
     p.set_defaults(func=cmd_overview, cmd="overview")
     return p
 
 
 _SUBCOMMANDS = {"overview", "hotspots", "coupling", "knowledge",
-                "markdown", "report", "badge"}
+                "markdown", "report", "badge", "wrapped"}
 
 
 def main(argv=None) -> int:

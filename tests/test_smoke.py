@@ -253,3 +253,41 @@ def test_badge_endpoint_json(sample_repo, capsys):
     assert "(" in badge["message"] and ")" in badge["message"]
     assert badge["color"] in {"brightgreen", "green", "yellowgreen",
                               "yellow", "orange", "red"}
+
+
+def test_wrapped_compute(sample_repo):
+    from gitfault import wrapped
+    root, commits = collect_commits(sample_repo)
+    commits = analysis.filter_commits(commits, [], None)
+    st = wrapped.compute(commits, year=None)
+    # all six commits fall in one calendar year here
+    assert st.commits == 6
+    assert st.active_days >= 1
+    assert st.longest_streak >= 1
+    assert st.total_contributors == 2
+    names = {c.name for c in st.contributors}
+    assert "Alice" in names and "Bob" in names
+    # biggest single commit is Bob's 20-line lonely.py add
+    assert st.biggest_commit[2] >= 20
+    assert st.most_changed_file[0] in {"core.py", "util.py"}
+
+
+def test_wrapped_svg(sample_repo):
+    from gitfault import wrapped
+    root, commits = collect_commits(sample_repo)
+    commits = analysis.filter_commits(commits, [], None)
+    st = wrapped.compute(commits, year=None)
+    svg = wrapped.build_svg(st, "sample/repo")
+    assert svg.startswith("<svg")
+    assert svg.rstrip().endswith("</svg>")
+    assert "gitfault" in svg and "sample/repo" in svg
+
+
+def test_wrapped_year_filter(sample_repo):
+    from gitfault import wrapped
+    root, commits = collect_commits(sample_repo)
+    commits = analysis.filter_commits(commits, [], None)
+    # a year with no commits yields an empty recap, not a crash
+    st = wrapped.compute(commits, year=1990)
+    assert st.commits == 0
+    assert st.contributors == []

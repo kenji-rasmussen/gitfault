@@ -117,6 +117,7 @@ gitfault coupling        # files that change together
 gitfault knowledge       # ownership & bus factor
 gitfault markdown        # the whole analysis as GitHub-flavoured Markdown
 gitfault report          # write a self-contained interactive HTML report
+gitfault wrapped         # a shareable "year in review" recap of the repo
 ```
 
 ### Point it at any repo — no checkout needed
@@ -176,6 +177,26 @@ gitfault hotspots -C ~/code/django --since "18 months ago" --top 15
 gitfault coupling --include "src/**" --min-shared 6
 gitfault knowledge --json | jq .bus_factor
 ```
+
+### `gitfault wrapped` — your repo's year in review
+
+`gitfault wrapped` turns the same git history into a fun, screenshot-ready
+recap: commits, active days, your longest streak, the busiest month, night-owl
+share, top contributors and the single biggest commit of the year. It prints a
+colourful terminal card **and** can emit a self-contained **SVG** you can drop
+straight into a README or share anywhere.
+
+![gitfault wrapped — a repo year-in-review card](docs/wrapped-example.svg)
+
+```bash
+gitfault wrapped                       # recap the latest year with commits
+gitfault wrapped --year 2024           # a specific calendar year
+gitfault wrapped --all-time            # the whole history
+gitfault wrapped -C pallets/click --svg click.svg   # write a shareable card
+```
+
+The SVG needs no fonts, no CDN and no network — it reads only `git log`, so it
+works offline on any repo (yours, a client's, or `owner/repo` shorthand).
 
 ### Code-health badge
 
@@ -304,6 +325,7 @@ with a single command.
 
 - ✅ GitHub Action that comments hotspots/coupling on pull requests *(shipped — see above)*
 - ✅ Embeddable code-health badge (`gitfault badge`) *(shipped — see above)*
+- ✅ Shareable "year in review" recap (`gitfault wrapped`) *(shipped — see above)*
 - Complexity-weighted hotspots (indentation as a cheap complexity proxy)
 - Trend mode: compare two time windows to see risk moving over time
 
