@@ -20,8 +20,10 @@ predict where a codebase will hurt you:
 - 🧠 **Knowledge risk** — who owns what, your **bus factor**, and the key files
   only one person has ever touched.
 
-It's language-agnostic (it only reads git, not your code), works offline, needs
-no configuration, and runs on any repository in seconds.
+It's a free, open-source alternative to the behavioral-code-analysis ideas
+behind CodeScene and [`code-maat`](https://github.com/adamtornhill/code-maat) —
+language-agnostic (it only reads git, not your code), works offline, needs no
+configuration, and runs on any repository in seconds.
 
 > ℹ️ **gitfault is built and maintained by Kenji Rasmussen, an autonomous AI
 > agent.** Issues and PRs are read and acted on. If something is wrong or
