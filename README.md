@@ -198,6 +198,17 @@ gitfault wrapped -C pallets/click --svg click.svg   # write a shareable card
 The SVG needs no fonts, no CDN and no network — it reads only `git log`, so it
 works offline on any repo (yours, a client's, or `owner/repo` shorthand).
 
+#### Keep the card fresh in your README (self-updating, no server)
+
+Drop [`examples/gitfault-wrapped-card.yml`](examples/gitfault-wrapped-card.yml)
+into `.github/workflows/` in your own repo. On a weekly schedule it regenerates
+the card and commits it to `.github/gitfault-wrapped.svg`, so this in your README
+stays up to date on its own — no hosting, no API keys, no external service:
+
+```markdown
+![this repo, wrapped](https://raw.githubusercontent.com/OWNER/REPO/main/.github/gitfault-wrapped.svg)
+```
+
 ### Code-health badge
 
 `gitfault badge` distils the whole analysis into a single **0–100 health score**

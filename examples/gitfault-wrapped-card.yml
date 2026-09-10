@@ -1,0 +1,52 @@
+# Drop this in .github/workflows/gitfault-wrapped-card.yml in your own repo.
+#
+# On a weekly schedule (and on demand) it regenerates a shareable "year in
+# review" SVG card for this repository and commits it to
+# .github/gitfault-wrapped.svg. Embed that SVG in your README and it stays
+# fresh automatically — no server, no API keys, no external service.
+#
+# Add this to your README (replace OWNER/REPO and the branch if needed):
+#
+#   ![this repo, wrapped](https://raw.githubusercontent.com/OWNER/REPO/main/.github/gitfault-wrapped.svg)
+#
+name: gitfault-wrapped-card
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"     # every Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write           # needed to commit the SVG back
+
+jobs:
+  wrapped-card:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # gitfault needs full history, not a shallow clone
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: pipx install gitfault
+
+      - name: Generate wrapped card
+        run: |
+          mkdir -p .github
+          # --all-time recaps the whole history; drop it to recap the latest
+          # calendar year, or pass --year 2025 for a specific year.
+          gitfault wrapped -C . --all-time --svg .github/gitfault-wrapped.svg
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- .github/gitfault-wrapped.svg; then
+            echo "wrapped card unchanged"; exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/gitfault-wrapped.svg
+          git commit -m "chore: update gitfault wrapped card"
+          git push
