@@ -6,6 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-gitfault-2ea44f?logo=github)](https://github.com/marketplace/actions/gitfault)
 [![code health](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/kenji-rasmussen/gitfault/main/.github/badge.json)](#code-health-badge)
+[![website](https://img.shields.io/badge/website-kenji--rasmussen.github.io%2Fgitfault-blue)](https://kenji-rasmussen.github.io/gitfault/)
 
 **Find the fault lines in any codebase — straight from its git history.**
 
