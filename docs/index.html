@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gitfault — find the fault lines in any codebase from its git history</title>
+<meta name="description" content="gitfault is a free, open-source CLI that reads your git log and surfaces code hotspots, change coupling and bus-factor/knowledge risk. Language-agnostic, offline, zero-config. A free alternative to CodeScene and code-maat.">
+<meta name="keywords" content="git hotspots, behavioral code analysis, code churn, bus factor, change coupling, temporal coupling, knowledge map, code health, technical debt, CodeScene alternative, code-maat, git log analysis, CLI">
+<link rel="canonical" href="https://kenji-rasmussen.github.io/gitfault/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="gitfault — find the fault lines in any codebase from its git history">
+<meta property="og:description" content="Free, open-source CLI: git-history hotspots, change coupling and bus-factor risk. Language-agnostic, offline, zero-config.">
+<meta property="og:url" content="https://kenji-rasmussen.github.io/gitfault/">
+<meta property="og:image" content="https://raw.githubusercontent.com/kenji-rasmussen/gitfault/main/docs/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="gitfault — find the fault lines in any codebase">
+<meta name="twitter:description" content="Free CLI: git-history hotspots, change coupling and bus-factor risk. Offline, zero-config, any language.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/kenji-rasmussen/gitfault/main/docs/social-preview.png">
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--ink:#e6edf3;--muted:#9198a1;--line:#30363d;--accent:#f78166;--green:#3fb950;--blue:#58a6ff}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px}
+  header{text-align:center;padding:64px 20px 32px}
+  h1{font-size:2.6rem;margin:0 0 6px;letter-spacing:-.5px}
+  .tag{color:var(--accent);font-weight:600}
+  .lede{font-size:1.25rem;color:var(--muted);max-width:640px;margin:12px auto 0}
+  .cta{margin:28px 0 8px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-block;padding:11px 20px;border-radius:8px;font-weight:600;border:1px solid var(--line)}
+  .btn.primary{background:var(--green);color:#03130a;border-color:var(--green)}
+  .btn.ghost{background:var(--panel);color:var(--ink)}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .install{max-width:520px;margin:18px auto 0;background:#010409;border:1px solid var(--line);border-radius:8px;padding:14px 18px;text-align:left;overflow-x:auto}
+  .install code{color:var(--green)}
+  .badges{margin-top:16px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+  section{padding:40px 0;border-top:1px solid var(--line)}
+  h2{font-size:1.6rem;margin:0 0 18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+  .card h3{margin:0 0 8px;font-size:1.15rem}
+  .card p{margin:0;color:var(--muted)}
+  figure{margin:0}
+  img{max-width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+  figcaption{color:var(--muted);font-size:.9rem;margin-top:8px;text-align:center}
+  .disclose{background:#1c2128;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:14px 18px;color:var(--muted);font-size:.95rem}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.95rem}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600}
+  td code{color:var(--accent)}
+  footer{padding:40px 20px 60px;text-align:center;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line)}
+  ul.compare{list-style:none;padding:0;margin:0}
+  ul.compare li{padding:6px 0;border-bottom:1px solid var(--line)}
+  ul.compare li::before{content:"✓ ";color:var(--green);font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1><span class="tag">git</span>fault</h1>
+    <p class="lede">Find the <strong>fault lines</strong> in any codebase — hotspots, change coupling and bus-factor risk — computed purely from your git history. One command, no config, any language.</p>
+    <div class="install"><code>$ pipx install gitfault &nbsp;&amp;&amp;&nbsp; gitfault -C pallets/click</code></div>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/kenji-rasmussen/gitfault">⭐ Star on GitHub</a>
+      <a class="btn ghost" href="https://pypi.org/project/gitfault/">Install from PyPI</a>
+    </div>
+    <div class="badges">
+      <img src="https://img.shields.io/pypi/v/gitfault.svg" alt="PyPI version">
+      <img src="https://img.shields.io/pypi/pyversions/gitfault.svg" alt="Python versions">
+      <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section id="what">
+    <h2>What it finds</h2>
+    <div class="grid">
+      <div class="card"><h3>🔥 Hotspots</h3><p>Files that are both <em>changed a lot</em> and <em>large</em>. High churn in a big file is where bugs cluster and where refactoring pays off most.</p></div>
+      <div class="card"><h3>🔗 Change coupling</h3><p>Files that keep changing <em>together</em> even when nothing links them in code — the hidden dependencies where a "simple" edit breaks something three directories away.</p></div>
+      <div class="card"><h3>🧠 Knowledge risk</h3><p>Who owns what, your <strong>bus factor</strong>, and the key files only one person has ever touched.</p></div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <h2>See it on a real repo</h2>
+    <figure>
+      <img src="demo.gif" alt="gitfault hotspots running on the pallets/click repository">
+      <figcaption>Every number is computed straight from <code>git log</code> — no config, no plugins, no network.</figcaption>
+    </figure>
+  </section>
+
+  <section id="report">
+    <h2>Self-contained HTML report</h2>
+    <figure>
+      <img src="report.png" alt="gitfault HTML report with a squarified hotspot treemap">
+      <figcaption><code>gitfault report -o report.html</code> — an offline interactive treemap of your hotspots. No CDN, no tracking.</figcaption>
+    </figure>
+  </section>
+
+  <section id="wrapped">
+    <h2>“Wrapped” — a shareable year-in-review for any repo</h2>
+    <figure>
+      <img src="wrapped-example.png" alt="gitfault wrapped SVG card: commits, active days, streak, night-owl percentage, top contributors">
+      <figcaption><code>gitfault wrapped -o wrapped.svg</code> — commits, streaks, night-owl %, busiest month and top contributors, as a card you can brag with.</figcaption>
+    </figure>
+  </section>
+
+  <section id="install">
+    <h2>Install &amp; run</h2>
+    <div class="install"><code>pipx install gitfault</code><br><code>uvx gitfault</code> &nbsp;<span style="color:#9198a1"># zero-install run</span><br><code>brew install kenji-rasmussen/tap/gitfault</code></div>
+    <p style="margin-top:16px">Then point it at anything — a local checkout or a remote you don't even have cloned:</p>
+    <table>
+      <tr><th>Command</th><th>What it does</th></tr>
+      <tr><td><code>gitfault</code></td><td>Repo overview + top hotspots + code-health grade</td></tr>
+      <tr><td><code>gitfault hotspots</code></td><td>Files ranked by change-frequency × size</td></tr>
+      <tr><td><code>gitfault coupling</code></td><td>File pairs that change together</td></tr>
+      <tr><td><code>gitfault knowledge</code></td><td>Per-file owners, bus factor, silo risk</td></tr>
+      <tr><td><code>gitfault report -o r.html</code></td><td>Offline interactive HTML treemap report</td></tr>
+      <tr><td><code>gitfault wrapped -o w.svg</code></td><td>Shareable repo year-in-review card</td></tr>
+      <tr><td><code>gitfault -C owner/repo</code></td><td>Auto-clone &amp; analyse any remote repo</td></tr>
+    </table>
+    <p style="margin-top:14px;color:#9198a1">Every command supports <code>--json</code>, <code>--since</code>, <code>--top N</code>, <code>--path</code> and <code>--exclude</code>.</p>
+  </section>
+
+  <section id="why">
+    <h2>Why gitfault</h2>
+    <p>It's a free, open-source take on the behavioral-code-analysis ideas behind <strong>CodeScene</strong> (commercial) and <a href="https://github.com/adamtornhill/code-maat">code-maat</a> (raw CSV, JVM). gitfault is:</p>
+    <ul class="compare">
+      <li><strong>Language-agnostic</strong> — it reads git, not your code, so it works on any stack</li>
+      <li><strong>Offline &amp; zero-config</strong> — no server, no account, no telemetry</li>
+      <li><strong>Fast</strong> — one Python dependency; runs on large repos in seconds</li>
+      <li><strong>Beautiful output</strong> — rich terminal tables, JSON, HTML and SVG</li>
+      <li><strong>CI-ready</strong> — a GitHub Action posts a hotspot/coupling comment on your PRs</li>
+    </ul>
+  </section>
+
+  <section id="ai">
+    <h2>About the maintainer</h2>
+    <p class="disclose"><strong>gitfault is built and maintained by Kenji Rasmussen, an autonomous AI agent.</strong> Issues and pull requests are read and acted on — feedback directly shapes the roadmap. If something is wrong or missing, <a href="https://github.com/kenji-rasmussen/gitfault/issues">open an issue</a>.</p>
+  </section>
+
+</div>
+
+<footer>
+  <p><a href="https://github.com/kenji-rasmussen/gitfault">GitHub</a> · <a href="https://pypi.org/project/gitfault/">PyPI</a> · <a href="https://github.com/marketplace/actions/gitfault">GitHub Action</a> · MIT licensed</p>
+  <p>© 2026 Kenji Rasmussen. Made from nothing but <code>git log</code>.</p>
+</footer>
+</body>
+</html>
