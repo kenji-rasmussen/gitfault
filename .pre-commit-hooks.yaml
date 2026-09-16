@@ -1,0 +1,9 @@
+- id: gitfault-guard
+  name: gitfault guard (fault-line warning)
+  description: Warn (non-blocking) when a commit touches a hotspot or knowledge-silo file, using git-history behavioural analysis.
+  entry: gitfault guard
+  language: python
+  pass_filenames: true
+  require_serial: true
+  verbose: true
+  stages: [pre-commit]

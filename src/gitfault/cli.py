@@ -234,6 +234,84 @@ def cmd_wrapped(args):
     wrapped.render_terminal(render.console, st, repo)
 
 
+def _norm_path(p: str) -> str:
+    p = p.replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p
+
+
+def cmd_guard(args):
+    """warn when you're touching a repo's fault lines (great as a pre-commit hook)"""
+    _, commits, lc = _load(args)
+    hs = A.hotspots(commits, lc)
+    k = A.knowledge(commits, lc)
+
+    rank = {h.path: i + 1 for i, h in enumerate(hs)}
+    hs_by_path = {h.path: h for h in hs}
+    own = {f.path: f for f in k.files}
+    multi_author = k.total_authors >= 2
+
+    targets = [_norm_path(f) for f in (args.files or [])]
+    if not targets:
+        try:
+            out = subprocess.run(
+                ["git", "-C", args.path, "diff", "--name-only", "HEAD~1", "HEAD"],
+                capture_output=True, text=True, check=True).stdout
+            targets = [_norm_path(x) for x in out.splitlines() if x.strip()]
+        except Exception:
+            targets = []
+
+    findings = []
+    for path in targets:
+        h = hs_by_path.get(path)
+        o = own.get(path)
+        reasons = []
+        if h is not None and rank.get(path, 10 ** 9) <= args.top:
+            reasons.append({
+                "kind": "hotspot", "rank": rank[path],
+                "revisions": h.revisions, "churn": h.churn,
+                "text": f"hotspot #{rank[path]} ({h.revisions} revs, "
+                        f"{h.churn:,} lines churned)",
+            })
+        if o is not None and multi_author and (
+                o.authors == 1 or o.main_share >= args.min_share):
+            if o.authors == 1:
+                text = f"knowledge silo: only {o.main_author} has ever touched it"
+            else:
+                text = (f"knowledge silo: {o.main_share*100:.0f}% owned by "
+                        f"{o.main_author}")
+            reasons.append({
+                "kind": "knowledge", "main_author": o.main_author,
+                "main_share": round(o.main_share, 3), "authors": o.authors,
+                "text": text,
+            })
+        if reasons:
+            findings.append({"path": path, "reasons": reasons})
+
+    if args.json:
+        _emit_json({"flagged": findings, "checked": len(targets)})
+    elif findings:
+        render.err_console.print(
+            "[bold yellow]gitfault guard[/bold yellow] flagged "
+            f"{len(findings)} file(s) on a fault line:")
+        for f in findings:
+            render.err_console.print(f"  [bold]{f['path']}[/bold]")
+            for r in f["reasons"]:
+                render.err_console.print(f"    [yellow]\u2022[/yellow] {r['text']}")
+        render.err_console.print(
+            "[dim]  \u2192 review carefully; consider pairing / adding a test / "
+            "spreading ownership.[/dim]")
+    else:
+        render.err_console.print(
+            f"[green]gitfault guard[/green] OK \u2014 no fault lines in "
+            f"{len(targets)} changed file(s).")
+
+    if findings and args.strict:
+        return 1
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="gitfault",
@@ -269,6 +347,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("report", cmd_report, "report"),
         ("badge", cmd_badge, "badge"),
         ("wrapped", cmd_wrapped, "wrapped"),
+        ("guard", cmd_guard, "guard"),
     ]:
         sp = sub.add_parser(name, help=fn.__doc__)
         common(sp)
@@ -300,13 +379,23 @@ def build_parser() -> argparse.ArgumentParser:
                             help="recap the entire history instead of one year")
             sp.add_argument("--svg", metavar="FILE", default=None,
                             help="write a shareable SVG recap card to FILE")
+        if extra == "guard":
+            sp.add_argument("files", nargs="*",
+                            help="files to check (pre-commit passes staged "
+                                 "paths; default: files changed in HEAD)")
+            sp.add_argument("--strict", action="store_true",
+                            help="exit non-zero if any file is on a fault line")
+            sp.add_argument("--min-share", type=float, default=0.9,
+                            help="flag as a knowledge silo at/above this "
+                                 "ownership share (default: 0.9)")
+            sp.set_defaults(top=10)
         sp.set_defaults(func=fn)
     p.set_defaults(func=cmd_overview, cmd="overview")
     return p
 
 
 _SUBCOMMANDS = {"overview", "hotspots", "coupling", "knowledge",
-                "markdown", "report", "badge", "wrapped"}
+                "markdown", "report", "badge", "wrapped", "guard"}
 
 
 def main(argv=None) -> int:
@@ -323,7 +412,9 @@ def main(argv=None) -> int:
         if not hasattr(args, attr):
             setattr(args, attr, val)
     try:
-        args.func(args)
+        rc = args.func(args)
+        if isinstance(rc, int):
+            return rc
     except gitlog.NotAGitRepo as e:
         render.console.print(f"[red]error:[/red] {e}")
         return 2

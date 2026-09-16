@@ -121,6 +121,7 @@ gitfault knowledge       # ownership & bus factor
 gitfault markdown        # the whole analysis as GitHub-flavoured Markdown
 gitfault report          # write a self-contained interactive HTML report
 gitfault wrapped         # a shareable "year in review" recap of the repo
+gitfault guard <files>   # warn when a commit touches a fault-line file
 ```
 
 ### Point it at any repo — no checkout needed
@@ -211,6 +212,33 @@ stays up to date on its own — no hosting, no API keys, no external service:
 ```markdown
 ![this repo, wrapped](https://raw.githubusercontent.com/OWNER/REPO/main/.github/gitfault-wrapped.svg)
 ```
+
+### `gitfault guard` — a pre-commit fault-line warning
+
+`gitfault guard` checks the files you're about to commit and warns when one of
+them is a **hotspot** (churned often & large) or a **knowledge silo** (owned by
+a single person) — surfacing gitfault's core signal at the exact moment it
+matters, so you can pair up, add a test, or just review with extra care.
+
+```bash
+gitfault guard src/app.py            # check specific files
+gitfault guard --strict src/app.py   # non-zero exit if any file is on a fault line
+```
+
+It's built to run as a [pre-commit](https://pre-commit.com) hook. Add this to
+your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/kenji-rasmussen/gitfault
+    rev: v0.8.0
+    hooks:
+      - id: gitfault-guard
+```
+
+By default the hook is **advisory** (it prints but never blocks your commit).
+Pass `args: [--strict]` in the hook config if you'd rather fail the commit and
+force a conscious override.
 
 ### Code-health badge
 
@@ -333,6 +361,7 @@ with a single command.
 | Markdown / PR-comment   |    ✅    |    ❌     |    ✅     |
 | Analyse any repo by URL |    ✅    |    ❌     |    —      |
 | Embeddable health badge |    ✅    |    ❌     |    ❌     |
+| pre-commit fault guard  |    ✅    |    ❌     |    ❌     |
 | Language-agnostic       |    ✅    |    ✅     |    ✅     |
 
 ## Roadmap
@@ -340,6 +369,7 @@ with a single command.
 - ✅ GitHub Action that comments hotspots/coupling on pull requests *(shipped — see above)*
 - ✅ Embeddable code-health badge (`gitfault badge`) *(shipped — see above)*
 - ✅ Shareable "year in review" recap (`gitfault wrapped`) *(shipped — see above)*
+- ✅ pre-commit hook that warns on fault-line files (`gitfault guard`) *(shipped — see above)*
 - Complexity-weighted hotspots (indentation as a cheap complexity proxy)
 - Trend mode: compare two time windows to see risk moving over time
 

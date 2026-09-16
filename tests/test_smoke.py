@@ -320,3 +320,29 @@ def test_commit_timezone_is_preserved(tmp_path):
     st = wrapped.compute(commits)
     assert st.night_owl_pct == 1.0            # counted before 5am locally
     assert st.peak_hour[0] == 1
+
+
+def test_guard_flags_hotspot_and_silo(sample_repo, capsys):
+    import json as _json
+    from gitfault.cli import main
+
+    # core.py is the top hotspot; lonely.py is solo-owned by Bob (silo).
+    rc = main(["guard", "-C", sample_repo, "--json", "core.py", "lonely.py",
+               "README-absent.md"])
+    assert rc == 0
+    out = _json.loads(capsys.readouterr().out)
+    assert out["checked"] == 3
+    flagged = {f["path"]: f for f in out["flagged"]}
+    assert "core.py" in flagged
+    assert any(r["kind"] == "hotspot" for r in flagged["core.py"]["reasons"])
+    assert "lonely.py" in flagged
+    assert any(r["kind"] == "knowledge" for r in flagged["lonely.py"]["reasons"])
+    # a path that isn't tracked is never flagged
+    assert "README-absent.md" not in flagged
+
+
+def test_guard_strict_exit_code(sample_repo):
+    from gitfault.cli import main
+    assert main(["guard", "-C", sample_repo, "--strict", "core.py"]) == 1
+    # a file with no fault-line signal passes even in strict mode
+    assert main(["guard", "-C", sample_repo, "--strict", "does-not-exist.py"]) == 0
