@@ -346,3 +346,75 @@ def test_guard_strict_exit_code(sample_repo):
     assert main(["guard", "-C", sample_repo, "--strict", "core.py"]) == 1
     # a file with no fault-line signal passes even in strict mode
     assert main(["guard", "-C", sample_repo, "--strict", "does-not-exist.py"]) == 0
+
+
+def _codeowners_repo(tmp_path):
+    """A repo with two subtrees owned by different authors."""
+    import os
+    repo = tmp_path / "co"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "alice@x.io")
+    _git(repo, "config", "user.name", "Alice")
+    (repo / "src").mkdir()
+    (repo / "docs").mkdir()
+
+    # Alice owns src/ (lots of lines over several commits)
+    for i in range(4):
+        (repo / "src" / "app.py").write_text("a = 1\n" * (i + 3))
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-qm", f"src {i}")
+
+    # Bob owns docs/
+    env = dict(os.environ)
+    env.update(GIT_AUTHOR_NAME="Bob", GIT_AUTHOR_EMAIL="bob@x.io",
+               GIT_COMMITTER_NAME="Bob", GIT_COMMITTER_EMAIL="bob@x.io")
+    (repo / "docs" / "guide.md").write_text("# guide\n" + "line\n" * 30)
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "docs", env=env)
+    return str(repo)
+
+
+def test_codeowners_rules_reflect_authorship(tmp_path):
+    repo = _codeowners_repo(tmp_path)
+    root, commits = collect_commits(repo)
+    counts = current_line_counts(repo, root)
+    commits = analysis.filter_commits(commits, [], None)
+    rep = analysis.codeowners(commits, counts, depth=1)
+    by_pattern = {r.pattern: r.owners for r in rep.rules}
+    assert by_pattern["/src/"] == ["alice@x.io"]
+    assert by_pattern["/docs/"] == ["bob@x.io"]
+    # repo-wide default is whoever added the most lines overall
+    assert rep.default_owners and rep.default_owners[0] in {"alice@x.io", "bob@x.io"}
+    # each rule tracks the live file/line tallies it summarises
+    for r in rep.rules:
+        assert r.files >= 1 and r.lines >= 1
+        assert len(r.owners) == len(r.shares)
+
+
+def test_codeowners_identity_map_and_render(tmp_path):
+    from gitfault.cli import _render_codeowners
+    repo = _codeowners_repo(tmp_path)
+    root, commits = collect_commits(repo)
+    counts = current_line_counts(repo, root)
+    commits = analysis.filter_commits(commits, [], None)
+    rep = analysis.codeowners(commits, counts, depth=1,
+                              identity={"alice@x.io": "@alice"})
+    text = _render_codeowners(rep, "sample/repo")
+    # header disclaimer + at least one real rule line
+    assert text.startswith("# CODEOWNERS")
+    assert "/src/ @alice" in text
+    # bob has no mapping -> emitted as his email (a valid CODEOWNERS token)
+    assert "/docs/ bob@x.io" in text
+
+
+def test_codeowners_cli_json(tmp_path, capsys):
+    import json as _json
+    from gitfault.cli import main
+    repo = _codeowners_repo(tmp_path)
+    rc = main(["codeowners", "-C", repo, "--json", "--depth", "1"])
+    assert rc == 0
+    data = _json.loads(capsys.readouterr().out)
+    patterns = {r["pattern"] for r in data["rules"]}
+    assert "/src/" in patterns and "/docs/" in patterns
+    assert data["depth"] == 1

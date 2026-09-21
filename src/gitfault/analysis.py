@@ -136,6 +136,110 @@ class KnowledgeReport:
     total_lines: int
 
 
+@dataclass
+class OwnerRule:
+    pattern: str                       # CODEOWNERS glob (e.g. "/src/api/")
+    owners: list[str]                  # identities (email or @handle)
+    shares: list[float]                # matching owner share, 0..1
+    files: int                         # live files under this pattern
+    lines: int                         # live LOC under this pattern
+
+
+@dataclass
+class CodeownersReport:
+    rules: list[OwnerRule]
+    default_owners: list[str]          # repo-wide fallback (the `*` rule)
+    default_shares: list[float]
+    depth: int
+    identities: int                    # distinct owners emitted
+
+
+def _dir_at_depth(path: str, depth: int) -> str:
+    """Group `path` to a directory pattern at most `depth` segments deep.
+
+    A file directly at the repo root maps to "*" (no directory)."""
+    parts = path.split("/")
+    if len(parts) <= 1:
+        return "*"
+    return "/".join(parts[:min(depth, len(parts) - 1)])
+
+
+def codeowners(commits: list[Commit], line_counts: dict[str, int],
+               depth: int = 2, min_share: float = 0.25,
+               max_owners: int = 3,
+               identity: dict[str, str] | None = None) -> "CodeownersReport":
+    """Suggest CODEOWNERS rules from who actually edits each area of the tree.
+
+    Ownership per (group, author) is weighted by lines added over history and
+    restricted to files that are still live.  For each directory group we emit
+    the authors whose share of edits is at least `min_share` (always at least
+    the single top author), up to `max_owners`.
+    """
+    identity = identity or {}
+    names = _display_name(commits)
+
+    def ident(email: str) -> str:
+        # explicit mapping wins; else a valid CODEOWNERS token (the email)
+        if email in identity:
+            return identity[email]
+        disp = names.get(email, email)
+        if disp in identity:
+            return identity[disp]
+        return email
+
+    group_add: dict[str, Counter] = defaultdict(Counter)
+    group_files: Counter = Counter()
+    group_lines: Counter = Counter()
+    overall_add: Counter = Counter()
+
+    live = set(line_counts)
+    added_seen: dict[str, Counter] = defaultdict(Counter)
+    for c in commits:
+        for f in c.files:
+            if f.path in live and f.added:
+                added_seen[f.path][c.email] += f.added
+
+    for path, loc in line_counts.items():
+        cc = added_seen.get(path)
+        if not cc:
+            continue
+        g = _dir_at_depth(path, depth)
+        group_files[g] += 1
+        group_lines[g] += loc
+        for email, add in cc.items():
+            group_add[g][email] += add
+            overall_add[email] += add
+
+    def pick(counter: Counter) -> "tuple[list[str], list[float]]":
+        total = sum(counter.values())
+        if not total:
+            return [], []
+        owners, shares = [], []
+        for email, add in counter.most_common(max_owners):
+            share = add / total
+            if owners and share < min_share:
+                break
+            owners.append(ident(email))
+            shares.append(round(share, 3))
+        return owners, shares
+
+    rules: list[OwnerRule] = []
+    for g in sorted(group_add, key=lambda k: (-group_lines[k], k)):
+        if g == "*":
+            continue
+        owners, shares = pick(group_add[g])
+        if not owners:
+            continue
+        pattern = "/" + g + "/"
+        rules.append(OwnerRule(pattern, owners, shares,
+                               group_files[g], group_lines[g]))
+
+    default_owners, default_shares = pick(overall_add)
+    emitted = {o for r in rules for o in r.owners} | set(default_owners)
+    return CodeownersReport(rules, default_owners, default_shares,
+                            depth, len(emitted))
+
+
 def _display_name(commits: list[Commit]) -> dict[str, str]:
     name: dict[str, str] = {}
     for c in commits:

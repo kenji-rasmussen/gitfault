@@ -312,6 +312,67 @@ def cmd_guard(args):
     return 0
 
 
+
+def _load_identity_map(path):
+    """Parse an email/name -> owner map file (``key = @handle`` per line)."""
+    mapping = {}
+    if not path:
+        return mapping
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            for sep in ("=", "\t", ","):
+                if sep in line:
+                    k, v = line.split(sep, 1)
+                    mapping[k.strip()] = v.strip()
+                    break
+    return mapping
+
+
+def _render_codeowners(report, repo):
+    lines = [
+        "# CODEOWNERS - suggested by gitfault from git history.",
+        "# Ownership is inferred from who has edited each area the most; it is",
+        "# a starting point, not ground truth. Review before committing.",
+        f"# Source: {repo}",
+        "#",
+        "# Tokens are the authors' git emails. GitHub only honours an email in",
+        "# CODEOWNERS if it belongs to a member with write access; otherwise",
+        "# map emails to @handles with `gitfault codeowners --map owners.txt`.",
+        "",
+    ]
+    if report.default_owners:
+        lines.append("* " + " ".join(report.default_owners))
+        lines.append("")
+    for r in report.rules:
+        lines.append(f"{r.pattern} " + " ".join(r.owners))
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def cmd_codeowners(args):
+    """generate a CODEOWNERS suggestion from who actually edits each area"""
+    _, commits, lc = _load(args)
+    identity = _load_identity_map(getattr(args, "map", None))
+    report = A.codeowners(commits, lc, depth=args.depth,
+                          min_share=args.min_share, max_owners=args.max_owners,
+                          identity=identity)
+    if args.json:
+        _emit_json(asdict(report))
+        return
+    text = _render_codeowners(report, args.display or "this repo")
+    out = getattr(args, "output", None)
+    if out:
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        render.err_console.print(
+            f"[green]OK[/green] wrote CODEOWNERS suggestion -> [bold]{out}[/bold] "
+            f"[dim]({len(report.rules)} rules, {report.identities} owners)[/dim]")
+    else:
+        sys.stdout.write(text)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="gitfault",
@@ -348,6 +409,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("badge", cmd_badge, "badge"),
         ("wrapped", cmd_wrapped, "wrapped"),
         ("guard", cmd_guard, "guard"),
+        ("codeowners", cmd_codeowners, "codeowners"),
     ]:
         sp = sub.add_parser(name, help=fn.__doc__)
         common(sp)
@@ -389,13 +451,26 @@ def build_parser() -> argparse.ArgumentParser:
                             help="flag as a knowledge silo at/above this "
                                  "ownership share (default: 0.9)")
             sp.set_defaults(top=10)
+        if extra == "codeowners":
+            sp.add_argument("--depth", type=int, default=2,
+                            help="directory depth for grouping rules (default: 2)")
+            sp.add_argument("--min-share", type=float, default=0.25,
+                            help="min edit share for a secondary owner "
+                                 "(default: 0.25)")
+            sp.add_argument("--max-owners", type=int, default=3,
+                            help="max owners per rule (default: 3)")
+            sp.add_argument("--map", metavar="FILE", default=None,
+                            help="map file: 'email = @handle' lines to emit "
+                                 "GitHub handles instead of emails")
+            sp.add_argument("-o", "--output", default=None,
+                            help="write CODEOWNERS to this file (default: stdout)")
         sp.set_defaults(func=fn)
     p.set_defaults(func=cmd_overview, cmd="overview")
     return p
 
 
 _SUBCOMMANDS = {"overview", "hotspots", "coupling", "knowledge",
-                "markdown", "report", "badge", "wrapped", "guard"}
+                "markdown", "report", "badge", "wrapped", "guard", "codeowners"}
 
 
 def main(argv=None) -> int:

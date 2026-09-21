@@ -122,6 +122,7 @@ gitfault markdown        # the whole analysis as GitHub-flavoured Markdown
 gitfault report          # write a self-contained interactive HTML report
 gitfault wrapped         # a shareable "year in review" recap of the repo
 gitfault guard <files>   # warn when a commit touches a fault-line file
+gitfault codeowners      # suggest a CODEOWNERS file from who edits each area
 ```
 
 ### Point it at any repo — no checkout needed
@@ -231,7 +232,7 @@ your `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/kenji-rasmussen/gitfault
-    rev: v0.8.0
+    rev: v0.9.0
     hooks:
       - id: gitfault-guard
 ```
@@ -239,6 +240,41 @@ repos:
 By default the hook is **advisory** (it prints but never blocks your commit).
 Pass `args: [--strict]` in the hook config if you'd rather fail the commit and
 force a conscious override.
+
+### `gitfault codeowners` — a CODEOWNERS file from real authorship
+
+A `CODEOWNERS` file is only as good as the mapping behind it, and most are
+written once and quietly rot. `gitfault codeowners` derives one from the ground
+truth — **who has actually edited each part of the tree** — weighting ownership
+by lines added over history and ignoring files that no longer exist.
+
+```bash
+gitfault codeowners                       # print a suggested CODEOWNERS to stdout
+gitfault codeowners -o .github/CODEOWNERS # write it
+gitfault codeowners --depth 1             # coarser rules (one per top-level dir)
+gitfault codeowners -C pallets/click      # any repo, no checkout
+```
+
+```text
+# CODEOWNERS — suggested by gitfault from git history.
+* armin.ronacher@active-4.com
+
+/tests/ armin.ronacher@active-4.com kevin@deldycke.com
+/src/click/ davidism@gmail.com
+/docs/ jaron@rosenau.info
+```
+
+GitHub only honours an email in `CODEOWNERS` when it belongs to a member with
+write access. To emit `@handles` instead, pass a map file (`email = @handle`
+per line):
+
+```bash
+gitfault codeowners --map owners.txt -o .github/CODEOWNERS
+```
+
+Tune `--min-share` (how large a secondary contributor must be to be listed) and
+`--max-owners` (cap per rule). It's a **starting point, not ground truth** —
+review before committing.
 
 ### Code-health badge
 
