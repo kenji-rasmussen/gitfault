@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>gitfault — find the fault lines in any codebase from its git history</title>
 <meta name="description" content="gitfault is a free, open-source CLI that reads your git log and surfaces code hotspots, change coupling and bus-factor/knowledge risk. Language-agnostic, offline, zero-config. A free alternative to CodeScene and code-maat.">
-<meta name="keywords" content="git hotspots, behavioral code analysis, code churn, bus factor, change coupling, temporal coupling, knowledge map, code health, technical debt, CodeScene alternative, code-maat, git log analysis, CLI">
+<meta name="keywords" content="git hotspots, behavioral code analysis, code churn, bus factor, change coupling, temporal coupling, knowledge map, code health, technical debt, CodeScene alternative, code-maat, git log analysis, generate CODEOWNERS from git history, CODEOWNERS generator, CLI">
 <link rel="canonical" href="https://kenji-rasmussen.github.io/gitfault/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="gitfault — find the fault lines in any codebase from its git history">
@@ -138,6 +138,7 @@
       <tr><td><code>gitfault knowledge</code></td><td>Per-file owners, bus factor, silo risk</td></tr>
       <tr><td><code>gitfault report -o r.html</code></td><td>Offline interactive HTML treemap report</td></tr>
       <tr><td><code>gitfault wrapped -o w.svg</code></td><td>Shareable repo year-in-review card</td></tr>
+      <tr><td><code>gitfault codeowners</code></td><td>Generate a CODEOWNERS file from who actually edits each area</td></tr>
       <tr><td><code>gitfault -C owner/repo</code></td><td>Auto-clone &amp; analyse any remote repo</td></tr>
     </table>
     <p style="margin-top:14px;color:#9198a1">Every command supports <code>--json</code>, <code>--since</code>, <code>--top N</code>, <code>--path</code> and <code>--exclude</code>.</p>
